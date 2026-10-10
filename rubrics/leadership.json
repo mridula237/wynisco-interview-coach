@@ -1,0 +1,26 @@
+{
+  "name": "leadership",
+  "question_type": "behavioral",
+  "dimensions": [
+    {
+      "name": "vision",
+      "description": "Articulates a clear direction or goal",
+      "weight": 0.20
+    },
+    {
+      "name": "influence",
+      "description": "Demonstrates persuasion or motivation of others",
+      "weight": 0.25
+    },
+    {
+      "name": "decision",
+      "description": "Shows structured decision-making under uncertainty",
+      "weight": 0.30
+    },
+    {
+      "name": "outcome",
+      "description": "Links leadership actions to measurable business impact",
+      "weight": 0.25
+    }
+  ]
+}

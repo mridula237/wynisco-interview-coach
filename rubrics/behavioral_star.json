@@ -1,0 +1,26 @@
+{
+  "name": "behavioral_star",
+  "question_type": "behavioral",
+  "dimensions": [
+    {
+      "name": "situation",
+      "description": "Clearly describes a specific, relevant situation",
+      "weight": 0.25
+    },
+    {
+      "name": "task",
+      "description": "Explains the candidate's role and responsibility",
+      "weight": 0.20
+    },
+    {
+      "name": "action",
+      "description": "Details specific actions taken (not 'we' but 'I')",
+      "weight": 0.30
+    },
+    {
+      "name": "result",
+      "description": "Quantifies or qualifies the outcome achieved",
+      "weight": 0.25
+    }
+  ]
+}

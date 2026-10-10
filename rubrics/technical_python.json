@@ -1,0 +1,26 @@
+{
+  "name": "technical_python",
+  "question_type": "technical",
+  "dimensions": [
+    {
+      "name": "correctness",
+      "description": "Solution is logically correct and handles edge cases",
+      "weight": 0.35
+    },
+    {
+      "name": "complexity",
+      "description": "Demonstrates understanding of time/space complexity",
+      "weight": 0.25
+    },
+    {
+      "name": "clarity",
+      "description": "Code is readable, well-named, and explained verbally",
+      "weight": 0.20
+    },
+    {
+      "name": "depth",
+      "description": "Shows knowledge of Python idioms and stdlib",
+      "weight": 0.20
+    }
+  ]
+}
