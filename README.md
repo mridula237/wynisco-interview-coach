@@ -1,148 +1,196 @@
 # Wynisco AI Mock Interview Coach
 
-**Week 6 Capstone — Working POC**
+An end-to-end AI-powered mock interview coaching system that transcribes candidate answers, generates structured feedback using GPT-4.1-mini, and evaluates output quality with four metrics adapted from Week 5's RAG eval pipeline.
 
-An AI-powered interview coaching system that gives candidates structured, rubric-driven feedback on their answers. Built with GPT-4.1-mini, Whisper, Streamlit, PostgreSQL, and Langfuse.
+---
+
+## What It Does
+
+1. **Candidate records an answer** (audio or text) to a behavioral, technical, or leadership question
+2. **Whisper API transcribes** the audio
+3. **PII is redacted** (Presidio + regex fallback) before anything is stored or logged
+4. **GPT-4.1-mini generates structured feedback** — clarity, depth, STAR format score, suggestions, red flags
+5. **Four eval metrics run automatically** and are logged to Langfuse
+6. **Coach review dashboard** lets a human approve, override, or reject AI feedback
 
 ---
 
 ## Architecture
 
 ```
-Candidate
-    │
-    ├── text answer ──────────────────────────────────┐
-    └── audio upload → Whisper API (transcription)    │
-                                                      ▼
-                                            Feedback Engine
-                                     (GPT-4.1-mini · JSON output mode)
-                                     (Prompt caching: system + rubric)
-                                                      │
-                                                      ▼
-                                              Eval Layer
-                                   rubric_coverage · actionability · consistency
-                                   PII guardrail (Presidio)
-                                                      │
-                                                      ▼
-                                          Coach Review UI
-                                   approve · override · reject
-                                                      │
-                                                      ▼
-                                          Candidate Report
-                                                      │
-                              ┌───────────────────────┘
-                              ▼                       ▼
-                          Langfuse                PostgreSQL
-                    (traces · scores)      (sessions · rubrics · feedback)
+candidate answer (audio/text)
+        │
+        ▼
+  Whisper transcription
+        │
+        ▼
+  PII redaction (Presidio + regex)
+        │
+        ▼
+  GPT-4.1-mini feedback generation
+  ├── JSON output mode
+  ├── Prompt caching (system prompt + rubric)
+  └── GPT-4.1-nano fallback
+        │
+        ▼
+  Eval layer (4 metrics)              Langfuse tracing
+  ├── Rubric Coverage (≥70%)    ──►   session trace
+  ├── Actionability (≥70%)      ──►   generation span
+  ├── Consistency Δ (≤0.5)      ──►   eval scores
+  └── PII Guardrail (0 leaks)   ──►
+        │
+        ▼
+  PostgreSQL (5 tables)
+        │
+        ▼
+  Coach Review Dashboard (Streamlit)
 ```
 
 ---
 
-## Week 5 Eval Metrics Reused
+## Week 5 → Week 6 Eval Metric Mapping
 
-| Week 5 Metric      | Interview Coach Analog | Threshold |
-|--------------------|------------------------|-----------|
-| Faithfulness       | Rubric Coverage        | ≥ 70%     |
-| Answer Relevance   | Actionability          | ≥ 70%     |
-| Context Precision  | Consistency            | delta ≤ 0.5 |
-| PII Guardrail      | PII Guardrail (Presidio) | —       |
+| Week 5 (RAG) | Week 6 (Interview Coach) | Threshold | Function |
+|---|---|---|---|
+| Faithfulness | Rubric Coverage | ≥ 70% | `score_rubric_coverage()` |
+| Answer Relevance | Actionability | ≥ 70% | `score_actionability()` |
+| Context Precision | Consistency Δ | ≤ 0.5 | `score_consistency()` |
+| PII Guardrail | PII Guardrail | 0 leaks | `redact_pii()` |
+
+```bash
+python3 eval/metrics.py   # print the full mapping table
+```
 
 ---
 
-## Files
+## Project Structure
 
 ```
 wynisco-interview-coach/
-├── db/
-│   ├── schema.sql          # PostgreSQL tables (5 tables)
-│   └── seed.sql            # Sample rubrics (behavioral STAR, technical, leadership)
 ├── app/
-│   ├── feedback_engine.py  # GPT-4.1-mini feedback generation + prompt caching
-│   ├── eval_layer.py       # Week 5 eval metrics + PII guardrail
-│   ├── langfuse_client.py  # Observability wrapper
-│   ├── streamlit_app.py    # Candidate UI
-│   └── coach_review.py     # Coach dashboard (override tracking)
-├── requirements.txt
-├── .env.example
-└── README.md
+│   ├── streamlit_app.py       # Candidate UI — record, transcribe, get feedback
+│   ├── coach_review.py        # Coach dashboard — approve / override / reject
+│   ├── feedback_engine.py     # GPT-4.1-mini feedback generation
+│   ├── eval_layer.py          # 4 eval metrics (Week 5 carry-over)
+│   └── langfuse_client.py     # Observability — traces, spans, scores
+├── db/
+│   ├── schema.sql             # 5 tables: rubrics, sessions, feedback, eval_scores, coach_overrides
+│   └── seed.sql               # 3 rubrics: behavioral_star, technical_python, leadership
+├── eval/
+│   ├── metrics.py             # Week 5 → Week 6 metric definitions (single source of truth)
+│   ├── run_eval_batch.py      # Offline batch eval runner (mirrors Week 5 RAG eval pipeline)
+│   └── README.md              # Eval folder docs
+├── rubrics/
+│   ├── behavioral_star.json   # STAR: situation / task / action / result
+│   ├── technical_python.json  # correctness / complexity / clarity / depth
+│   └── leadership.json        # vision / influence / decision / outcome
+├── tests/
+│   ├── conftest.py            # Shared fixtures
+│   ├── test_eval_layer.py     # 19 unit tests — rubric coverage, actionability, PII
+│   └── test_feedback_engine.py # 10 unit tests — prompt builder, schema, system prompt
+├── .env.example               # Environment variable template
+├── pytest.ini                 # Test config
+├── requirements.txt           # Python dependencies
+└── run.sh                     # One-command launcher
 ```
 
 ---
 
-## Setup
+## Quick Start
 
-### 1. Clone & install
+### 1. Install dependencies
 
 ```bash
-git clone https://github.com/<your-org>/wynisco-interview-coach.git
-cd wynisco-interview-coach
-pip install -r requirements.txt
-python -m spacy download en_core_web_lg   # for Presidio PII detection
+pip3 install -r requirements.txt
+python3 -m spacy download en_core_web_lg
 ```
 
 ### 2. Configure environment
 
 ```bash
 cp .env.example .env
-# Edit .env with your OpenAI key, Postgres creds, and Langfuse keys
+# Fill in: OPENAI_API_KEY, DB_*, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY
 ```
 
-### 3. Initialise the database
+### 3. Set up the database
 
 ```bash
-psql -U postgres -c "CREATE DATABASE wynisco;"
-psql -U postgres -d wynisco -f db/schema.sql
-psql -U postgres -d wynisco -f db/seed.sql
+./run.sh db-init
 ```
 
-### 4. Run the candidate UI
+### 4. Run the apps
 
 ```bash
-streamlit run app/streamlit_app.py
+./run.sh candidate   # http://localhost:8501 — candidate interview UI
+./run.sh coach       # http://localhost:8502 — coach review dashboard
+./run.sh both       
 ```
 
-### 5. Run the coach review dashboard
+### 5. Run tests
 
 ```bash
-streamlit run app/coach_review.py --server.port 8502
+python3 -m pytest tests/ -v
+
 ```
 
 ---
 
-## Success Gates
+## Models
 
-| Metric                  | Target          |
-|-------------------------|-----------------|
-| Feedback latency        | < 2 min         |
-| Coach override rate     | ≤ 30%           |
-| Average feedback score  | ≥ 4.0 / 5       |
-| Cost per session        | < $0.10         |
-| Rubric coverage         | ≥ 70%           |
-| Actionability           | ≥ 70%           |
+| Role | Model | Why |
+|---|---|---|
+| Primary feedback | `gpt-4.1-mini` | Fast, cost-efficient, JSON mode |
+| Fallback | `gpt-4.1-nano` | Kicks in on rate-limit or timeout |
+| Transcription | `whisper-1` | OpenAI Whisper API |
 
 ---
 
-## Cost Estimate
+## Observability
 
-- GPT-4.1-mini: ~$0.0015 per session (≈800 prompt tokens, 250 completion)
-- Whisper: ~$0.006/min of audio
-- Total: **~$0.002–$0.008 per session** (well under $0.10 target)
+Langfuse traces every session end-to-end:
+- **Session trace** — candidate ID, rubric, question
+- **Generation span** — model, tokens, latency, cost
+- **Eval scores** — all 4 metrics logged per session
+
+Set `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` in `.env` to enable. Gracefully disabled if not set.
 
 ---
 
-## Deploy
+## Offline Batch Eval
 
-**Railway (recommended)**:
+Re-score historical feedback against all 4 metrics:
+
 ```bash
-railway init
-railway add postgresql
-railway up
+python3 eval/run_eval_batch.py --limit 50    
+python3 eval/run_eval_batch.py --rescore     
+python3 eval/run_eval_batch.py --report      
 ```
 
-**Render**: Add a `render.yaml` with two services (streamlit_app, coach_review) and a PostgreSQL instance.
+---
+
+## Environment Variables
+
+| Variable | Description |
+|---|---|
+| `OPENAI_API_KEY` | OpenAI API key |
+| `DB_HOST` | PostgreSQL host (default: localhost) |
+| `DB_PORT` | PostgreSQL port (default: 5432) |
+| `DB_NAME` | Database name (default: wynisco) |
+| `DB_USER` | Database user |
+| `DB_PASSWORD` | Database password |
+| `LANGFUSE_PUBLIC_KEY` | Langfuse public key (optional) |
+| `LANGFUSE_SECRET_KEY` | Langfuse secret key (optional) |
+| `LANGFUSE_HOST` | Langfuse host (default: https://cloud.langfuse.com) |
 
 ---
 
-## Author
+## Tech Stack
 
-Mridula Kalaiselvan — Wynisco Week 6 Capstone
+- **LLM**: OpenAI GPT-4.1-mini / GPT-4.1-nano
+- **Transcription**: OpenAI Whisper API
+- **PII Redaction**: Microsoft Presidio + spaCy
+- **Database**: PostgreSQL + psycopg2
+- **Observability**: Langfuse
+- **UI**: Streamlit
+- **Testing**: pytest (29 unit tests)
+- **Eval**: Custom metrics adapted from RAGAS Week 5 pipeline
