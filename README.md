@@ -172,7 +172,6 @@ cp .env.example .env
 
 ```bash
 python3 -m pytest tests/ -v
-# 29 passed ✓ — no DB or API calls required
 ```
 
 ---
