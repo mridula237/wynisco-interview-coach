@@ -48,12 +48,12 @@ GPT-4.1-mini — structured feedback (JSON mode, prompt caching)
 Eval Layer ──────────────────────────────────────────────────────┐
   • Rubric Coverage  (≥ 70%)   ← Week 5: Faithfulness            │
   • Actionability    (≥ 70%)   ← Week 5: Answer Relevance        │
-  • Consistency Δ   (≤ 0.5)   ← Week 5: Context Precision       │
-  • PII Guardrail   (0 leaks)  ← Week 5: PII Guardrail          │
-        │                                                         │
-        ▼                                                         │
+  • Consistency Δ   (≤ 0.5)   ← Week 5: Context Precision        │
+  • PII Guardrail   (0 leaks)  ← Week 5: PII Guardrail           │
+        │                                                        │
+        ▼                                                        │
 PostgreSQL ← sessions, feedback, eval_scores, coach_overrides    │
-        │                                                         │
+        │                                                        │
         ▼                                                   Langfuse traces
 Coach Review Dashboard (Streamlit :8502)                   + scores
   → Approve / Override / Reject
